@@ -1,0 +1,8 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.flashType": "UART",
+  "idf.port": "/dev/ttyUSB0",
+  "files.associations": {
+    "mqtt_client.h": "c"
+  }
+}

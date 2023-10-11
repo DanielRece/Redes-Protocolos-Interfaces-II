@@ -1,5 +1,4 @@
 import paho.mqtt.publish as publish
-import paho.mqtt.client as mqtt
 from random import randint, uniform
 from time import sleep
 
