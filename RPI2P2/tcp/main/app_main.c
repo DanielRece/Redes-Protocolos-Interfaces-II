@@ -31,7 +31,7 @@
 #include "mqtt_client.h"
 
 static const char *TAG = "mqtt_example";
-int delay_time = 10;
+
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {

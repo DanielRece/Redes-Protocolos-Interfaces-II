@@ -1,6 +1,7 @@
 import paho.mqtt.publish as publish
 from random import randint, uniform
 from time import sleep
+import json
 
 topics = []
 identificadores = ['EDIFICIO_Pto0903']
@@ -21,11 +22,8 @@ for identificador in identificadores:
                     topic = f"{identificador}/P{planta}/{ala}/{sala}/{sensor}"
                     topics.append(topic)
 
-
-
-
 while(1):
     topic = topics[randint(0,len(topics))]
-    value = uniform(0, 20)
+    value = uniform(0, 50)
     sleep(randint(0,5))
-    publish.single(topic,value,hostname="test.mosquitto.org")
+    publish.single(topic,value,hostname="192.168.1.147")
