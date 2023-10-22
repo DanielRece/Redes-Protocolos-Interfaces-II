@@ -2,14 +2,14 @@ menu "Example Configuration"
 
     config EXAMPLE_MDNS_HOST_NAME
         string "mDNS Host Name"
-        default "esp-home"
+        default "esp-home-dani"
         help
             Specify the domain name used in the mDNS service.
             Note that webpage also take it as a part of URL where it will send GET/POST requests to.
 
     choice EXAMPLE_WEB_DEPLOY_MODE
         prompt "Website deploy mode"
-        default EXAMPLE_WEB_DEPLOY_SEMIHOST
+        default EXAMPLE_WEB_DEPLOY_SF
         help
             Select website deploy mode.
             You can deploy website to host, and ESP32 will retrieve them in a semihost way (JTAG is needed).

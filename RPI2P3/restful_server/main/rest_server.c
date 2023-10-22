@@ -14,6 +14,18 @@
 #include "esp_log.h"
 #include "esp_vfs.h"
 #include "cJSON.h"
+#include "cbor.h"
+
+#define CBOR_CHECK(a, str, goto_tag, ret_value, ...)                              \
+    do                                                                            \
+    {                                                                             \
+        if ((a) != CborNoError)                                                   \
+        {                                                                         \
+            ESP_LOGE(TAG, "%s(%d): " str, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+            ret = ret_value;                                                      \
+            goto goto_tag;                                                        \
+        }                                                                         \
+    } while (0)
 
 static const char *REST_TAG = "esp-rest";
 #define REST_CHECK(a, str, goto_tag, ...)                                              \
@@ -160,7 +172,76 @@ static esp_err_t temperature_data_get_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "raw", esp_random() % 20);
+    int temp = esp_random() % 20;
+    cJSON_AddNumberToObject(root, "raw", temp);
+    const char *sys_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, sys_info);
+    free((void *)sys_info);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+static esp_err_t data_get_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    cJSON *root = cJSON_CreateObject();
+    int temp = esp_random() % 20;
+    float temp_F = temp*9.0/5+32;
+    char* mystring = "hola";
+    cJSON *random_obj = cJSON_CreateObject();
+    cJSON_AddStringToObject(random_obj, "char","a");
+    cJSON_AddNumberToObject(random_obj, "int", 0);
+    int arr[3] = {1,2,3};
+    cJSON *my_array = cJSON_CreateIntArray(arr,3);
+    cJSON_AddNumberToObject(root, "raw", temp);
+    cJSON_AddNumberToObject(root, "temp_F", temp_F);
+    cJSON_AddBoolToObject(root, "is_reliable", (bool) (temp_F == temp*9.0/5 +32));
+    cJSON_AddStringToObject(root, "string", mystring);
+    cJSON_AddItemToObject(root, "obj", random_obj);
+    cJSON_AddItemToObject(root, "array", my_array);
+
+    const char *sys_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, sys_info);
+    free((void *)sys_info);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+static esp_err_t cbor_data_get_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/cbor");
+    CborEncoder root_encoder;
+    uint8_t buf[100];
+    // Initialize the outermost cbor encoder
+    cbor_encoder_init(&root_encoder, buf, sizeof(buf), 0);
+    int temp = esp_random() % 20;
+    float temp_F = temp*9.0/5+32;
+    char* mystring = "hola";
+    cbor_encode_uint(&root_encoder, temp);
+    cbor_encode_float(&root_encoder, temp_F);
+    cbor_encode_text_stringz(&root_encoder, mystring);
+    cbor_encode_boolean(&root_encoder, (bool) (temp_F == temp*9.0/5+32));
+    CborEncoder array_encoder;
+    CborEncoder map_encoder;
+    cbor_encoder_create_map(&root_encoder, &map_encoder, 1);
+    cbor_encode_text_stringz(&map_encoder, "a");
+    cbor_encode_uint(&map_encoder, 0);
+    cbor_encoder_close_container(&root_encoder, &map_encoder);
+    cbor_encoder_create_array(&root_encoder, &array_encoder, 3);
+    cbor_encode_uint(&array_encoder, 1);
+    cbor_encode_uint(&array_encoder, 2);
+    cbor_encode_uint(&array_encoder, 3);
+    cbor_encoder_close_container(&root_encoder, &array_encoder);
+    httpd_resp_send(req, (char*)buf, cbor_encoder_get_buffer_size( &root_encoder, buf));
+    return ESP_OK;
+}
+
+static esp_err_t temperature_F_data_get_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    cJSON *root = cJSON_CreateObject();
+    int temp = esp_random() % 20;
+    cJSON_AddNumberToObject(root, "temp_F", (float) ((temp*9.0/5)+32));
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
     free((void *)sys_info);
@@ -191,6 +272,23 @@ esp_err_t start_rest_server(const char *base_path)
     };
     httpd_register_uri_handler(server, &system_info_get_uri);
 
+    httpd_uri_t data_get_uri = {
+        .uri = "/api/v1/data",
+        .method = HTTP_GET,
+        .handler = data_get_handler,
+        .user_ctx = rest_context
+    };
+    httpd_register_uri_handler(server, &data_get_uri);
+    
+    httpd_uri_t cbor_data_get_uri = {
+        .uri = "/api/v1/cbor_data",
+        .method = HTTP_GET,
+        .handler = cbor_data_get_handler,
+        .user_ctx = rest_context
+    };
+    httpd_register_uri_handler(server, &cbor_data_get_uri);
+    
+
     /* URI handler for fetching temperature data */
     httpd_uri_t temperature_data_get_uri = {
         .uri = "/api/v1/temp/raw",
@@ -199,6 +297,16 @@ esp_err_t start_rest_server(const char *base_path)
         .user_ctx = rest_context
     };
     httpd_register_uri_handler(server, &temperature_data_get_uri);
+    
+    
+
+    httpd_uri_t temperature_F_data_get_uri = {
+        .uri = "/api/v1/temp/temp_F",
+        .method = HTTP_GET,
+        .handler = temperature_F_data_get_handler,
+        .user_ctx = rest_context
+    };
+    httpd_register_uri_handler(server, &temperature_F_data_get_uri);
 
     /* URI handler for light brightness control */
     httpd_uri_t light_brightness_post_uri = {
