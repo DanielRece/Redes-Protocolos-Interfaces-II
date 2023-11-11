@@ -1,0 +1,15 @@
+dependencies:
+  espressif/coap:
+    component_hash: null
+    source:
+      path: /home/danrec/git/Redes-Protocolos-Interfaces-II/RPI2P4/coap_client/managed_components/espressif__coap
+      type: local
+    version: 4.3.1~3
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 5.2.0
+manifest_hash: 46acaad8355a67440a87421d379744697d49d777ce7be722d5367d5284acae2e
+target: esp32
+version: 1.0.0
